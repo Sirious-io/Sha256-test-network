@@ -1,1 +1,1 @@
-Not finished, forked because of preservation.
+A test of an algo swap, your funds will be lost afterwords!
