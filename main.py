@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from rlp.sedes import Binary, big_endian_int, binary
 from eth_account.messages import encode_defunct
 import requests, time, json, threading, flask, rlp
+import hashlib
+
 
 
 global config
@@ -16,7 +18,7 @@ try:
     config = json.load(configFile)
     configFile.close()
 except:
-    config = {"dataBaseFile": "database.json", "peers": ["https://node-1.siricoin.tech:5006/", "https://node-2.siricoin.tech:5006/"], "InitTxID": "none"}
+    config = {"dataBaseFile": "database.json", "peers": [], "InitTxID": "none"}
 
 try:
     ssl_context = tuple(config["ssl"])
@@ -153,8 +155,12 @@ class GenesisBeacon(object):
 
     def proofOfWork(self):
         bRoot = self.beaconRoot()
-        proof = w3.soliditySha3(["bytes32", "uint256"], [bRoot, int(self.nonce)])
-        return proof.hex()
+        b = (b"".join([bytes.fromhex(bRoot.replace("0x", "")),int(self.nonce).to_bytes(32, 'big')]))
+        print(b)
+        h = hashlib.sha256(b).hexdigest()
+        print(h)
+        #print(pycryptonight.cn_fast_hash(b"1"))
+        return "0x" + str(h)
 
     def difficultyMatched(self):
         return int(self.proofOfWork(), 16) < self.miningTarget
@@ -197,13 +203,15 @@ class Beacon(object):
 
     def proofOfWork(self):
         bRoot = self.beaconRoot()
-#        print(f"Beacon root : {bRoot}")
-        proof = w3.soliditySha3(["bytes32", "uint256"], [bRoot, int(self.nonce)])
-        return proof.hex()
+        b = (b"".join([bytes.fromhex(bRoot.replace("0x", "")),int(self.nonce).to_bytes(32, 'big')]))
+        print(b)
+        h = hashlib.sha256(b).hexdigest()
+        print(h)
+        #print(pycryptonight.cn_fast_hash(b"1"))
+        return "0x" + str(h)
 
     def difficultyMatched(self):
-#        print(self.proofOfWork())
-#        print(self.miningTarget)
+
         return int(self.proofOfWork(), 16) < int(self.miningTarget, 16)
 
     def exportJson(self):
@@ -216,8 +224,8 @@ class BeaconChain(object):
         self.blocks = [GenesisBeacon()]
         self.blocksByHash = {self.blocks[0].proof: self.blocks[0]}
         self.pendingMessages = []
-        self.blockReward = 50
-        self.blockTime = 1200 # in seconds, about 20 minutes
+        self.blockReward = 12.5
+        self.blockTime = 300 # in seconds, about 20 minutes
         self.cummulatedDifficulty = 1
 
     def checkBeaconMessages(self, beacon):
@@ -303,7 +311,7 @@ class BeaconChain(object):
 
 class State(object):
     def __init__(self, initTxID):
-        self.balances = {"0x611B74e0dFA8085a54e8707c573A588138c9dDba": 10, "0x3f119Cef08480751c47a6f59Af1AD2f90b319d44": 100, "0x0000000000000000000000000000000000000000": 0}
+        self.balances = {"0xc79878fCD826EC7e00c9cB754f8242F3466dead5": 100, "0x0000000000000000000000000000000000000000": 0}
         self.transactions = {"0x0000000000000000000000000000000000000000": []}
         self.received = {"0x0000000000000000000000000000000000000000": []}
         self.sent = {"0x0000000000000000000000000000000000000000": []}
@@ -315,8 +323,8 @@ class State(object):
         self.txIndex = {}
         self.lastTxIndex = 0
         self.beaconChain = BeaconChain()
-        self.holders = ["0x3f119Cef08480751c47a6f59Af1AD2f90b319d44", "0x611B74e0dFA8085a54e8707c573A588138c9dDba", "0x0000000000000000000000000000000000000000"]
-        self.totalSupply = 110 # initial supply used for testing
+        self.holders = ["0xc79878fCD826EC7e00c9cB754f8242F3466dead5", "0x0000000000000000000000000000000000000000"]
+        self.totalSupply = 100 # initial supply used for testing
         self.type2ToType0Hash = {}
         self.type0ToType2Hash = {}
 
