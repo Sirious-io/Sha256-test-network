@@ -1,4 +1,4 @@
-import time, json, sha3, sys, os, requests, cpuinfo, pypresence, hashlib
+import time, json, sha3, sys, os, requests, cpuinfo, pypresence, groestlcoin_hash, skein
 from eth_account.messages import encode_defunct
 from web3.auto import w3
 from rich import print
@@ -11,8 +11,11 @@ configFile = "config.json"
 TimeOUT = 1
 RpcEnabled = True
 hashes_per_list = 3000
-hashrate_refreshRate = 15 # s
+hashrate_refreshRate = 10 # s
 
+
+def hash():
+    pass
 
 def rgbPrint(string, color, end="\n"):
     print("[" + color + "]" + str(string) + "[/" + color + "]", end=end)
@@ -90,7 +93,7 @@ class SiriCoinMiner(object):
         try:
             txid = requests.get(f"{self.node}/send/rawtransaction/?tx={json.dumps(tx).encode().hex()}").json().get("result")[0]
             rgbPrint(f"Mined block {blockData['miningData']['proof']},\nsubmitted in transaction {txid}", "green")
-            rgbPrint("Current Network Balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siri", "green") # code by luketherock868
+            rgbPrint("Current Network Balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", "green") # code by luketherock868
             miner.startMining()
         except:
             pass
@@ -99,11 +102,6 @@ class SiriCoinMiner(object):
         messagesHash = sha3.keccak_256(self.messages).digest()
         bRoot = "0x" + sha3.keccak_256((b"".join([bytes.fromhex(self.lastBlock.replace("0x", "")), int(self.timestamp).to_bytes(32, 'big'), messagesHash, bytes.fromhex(self.rewardsRecipient.replace("0x", "")) ]))).hexdigest() # parent PoW hash (bytes32), beacon's timestamp (uint256), hash of messages (bytes32), beacon miner (address)
         return bRoot
-
-    def proofOfWork(self, bRoot, nonce):
-        proof = hashlib.sha256((b"".join([bytes.fromhex(bRoot.replace("0x", "")),nonce.to_bytes(32, 'big')]))).hexdigest()
-        #proof = sha3.keccak_256().hexdigest()
-        return "0x" + proof
 
     def formatHashrate(self, hashrate):
         if hashrate < 1000:
@@ -128,7 +126,7 @@ class SiriCoinMiner(object):
         global RpcEnabled, first_run, bRoot
         if RpcEnabled:
             try:
-                rpc = pypresence.Presence("971742749688725524")
+                rpc = pypresence.Presence("998176088297570324")
                 rpc.connect()
             except:
                 RpcEnabled = False
@@ -137,32 +135,35 @@ class SiriCoinMiner(object):
         if first_run: rgbPrint(f"Started mining for {self.rewardsRecipient} on {the_node}", "yellow")
         hashes = []
 
+        
+
         while True:
             self.refresh()
             bRoot = self.beaconRoot()
-            bRoot_hasher = hashlib.sha256()
+            bRoot_hasher = skein.skein256()
             bRoot_hasher.update(bytes.fromhex(bRoot.replace("0x", "")))
 
             first_run = False
             while (time.time() - self.timestamp) < hashrate_refreshRate:
-
                 for i in range (hashes_per_list):
+                    
                     finalHash = bRoot_hasher.copy()
                     finalHash.update(self.nonce.to_bytes(32, "big"))
-                    hashes.append(finalHash)
+                    hashes.append(groestlcoin_hash.getHash(b"".join([finalHash.digest(), self.nonce.to_bytes(32, "big")]), 64))
                     self.nonce +=1
+                    
 
                 for hash in hashes:
-                    if int(int.from_bytes(hash.digest(), "big")) < int(self.target, 16):
+                    if int(int.from_bytes(hash, "big")) < int(self.target, 16):
                         validNonce = (self.nonce - (len(hashes) - hashes.index(hash)))
-                        rawTX = ({"miningData" : {"miner": self.rewardsRecipient, "nonce": validNonce, "difficulty": self.difficulty, "miningTarget": self.target, "proof": "0x" + hash.hexdigest()}, "parent": self.lastBlock, "messages": self.messages.hex(), "timestamp": int(self.timestamp), "son": "0"*64})           
+                        rawTX = ({"miningData" : {"miner": self.rewardsRecipient, "nonce": validNonce, "difficulty": self.difficulty, "miningTarget": self.target, "proof": "0x" + hash.hex()}, "parent": self.lastBlock, "messages": self.messages.hex(), "timestamp": int(self.timestamp), "son": "0"*64})           
                         self.submitBlock(rawTX)
 
                 hashes.clear()
-
+            
             rgbPrint("Last " + str(hashrate_refreshRate) + "s hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)), "yellow")
             if RpcEnabled:
-                rpc.update(state="Mining siri on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siri", large_image="red-siri", small_image="redeye", start=time.time())
+                rpc.update(state="Mining siro on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", large_image="sirious", start=time.time())
 
 
 if __name__ == "__main__":
