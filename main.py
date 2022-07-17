@@ -1,3 +1,4 @@
+from datetime import timedelta
 from web3.auto import w3
 from typing import Optional
 from flask_cors import CORS
@@ -5,18 +6,14 @@ from eth_utils import keccak
 from dataclasses import dataclass
 from rlp.sedes import Binary, big_endian_int, binary
 from eth_account.messages import encode_defunct
-import requests, time, json, threading, flask, rlp
-import hashlib
-
-
-
+import requests, time, json, threading, flask, rlp, sys
+import groestlcoin_hash, skein
+from termcolor import colored
 global config
 
 transactions = {}
 try:
-    configFile = open("config.json", "r")
-    config = json.load(configFile)
-    configFile.close()
+    config = {"dataBaseFile": "database.json", "peers": [], "InitTxID": "none"}
 except:
     config = {"dataBaseFile": "database.json", "peers": [], "InitTxID": "none"}
 
@@ -156,11 +153,7 @@ class GenesisBeacon(object):
     def proofOfWork(self):
         bRoot = self.beaconRoot()
         b = (b"".join([bytes.fromhex(bRoot.replace("0x", "")),int(self.nonce).to_bytes(32, 'big')]))
-        print(b)
-        h = hashlib.sha256(b).hexdigest()
-        print(h)
-        #print(pycryptonight.cn_fast_hash(b"1"))
-        return "0x" + str(h)
+        return "0x" + groestlcoin_hash.getHash(b"".join([skein.skein256(b).digest(), self.nonce.to_bytes(32, "big")]), 64).hex()
 
     def difficultyMatched(self):
         return int(self.proofOfWork(), 16) < self.miningTarget
@@ -204,11 +197,7 @@ class Beacon(object):
     def proofOfWork(self):
         bRoot = self.beaconRoot()
         b = (b"".join([bytes.fromhex(bRoot.replace("0x", "")),int(self.nonce).to_bytes(32, 'big')]))
-        print(b)
-        h = hashlib.sha256(b).hexdigest()
-        print(h)
-        #print(pycryptonight.cn_fast_hash(b"1"))
-        return "0x" + str(h)
+        return "0x" + groestlcoin_hash.getHash(b"".join([skein.skein256(b).digest(), self.nonce.to_bytes(32, "big")]), 64).hex()
 
     def difficultyMatched(self):
 
@@ -236,7 +225,18 @@ class BeaconChain(object):
         return True
 
     def calcDifficulty(self, expectedDelay, timestamp1, timestamp2, currentDiff):
-        return min(max((currentDiff * expectedDelay)/max((timestamp2 - timestamp1), 1), currentDiff * 0.9, 1), currentDiff*1.1)
+
+        # try:
+        #     AnchorBlock = 11
+        #     if len(node.state.beaconChain.blocks) > AnchorBlock:
+        #         parentAnchorBlockTimestamp = node.state.beaconChain.getBlockByHeightJSON(int(AnchorBlock-1))["timestamp"]
+        #         time_delta = timestamp2 - parentAnchorBlockTimestamp                                                       BROKE ASERT ALGO
+        #         height_delta = len(node.state.beaconChain.blocks) - AnchorBlock
+        #         diff = abs(time_delta - expectedDelay * (height_delta + 1))
+        #         return diff
+        # except:
+            return (min(max((currentDiff * expectedDelay)/max((timestamp2 - timestamp1), 1), currentDiff * 0.9, 1), currentDiff*1.1))
+
 
     def isBeaconValid(self, beacon):
         _lastBeacon = self.getLastBeacon()
