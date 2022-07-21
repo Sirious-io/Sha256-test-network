@@ -4,7 +4,7 @@ from web3.auto import w3
 from rich import print
 
 
-MainNET = "http://so-travelling.at.playit.gg:51922"
+MainNET = "https://testnet.siro.pichisdns.com:5006"
 JunaidNET = 'https://node-2.siricoin.tech:5006'
 
 configFile = "config.json"
