@@ -1,4 +1,4 @@
 A test of an algo swap, your funds will be lost afterwords!
 
 
-Node: http://so-travelling.at.playit.gg:51922
+Node: https://testnet.siro.pichisdns.com:5006
