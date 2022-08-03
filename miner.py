@@ -1,24 +1,21 @@
-import time, json, sha3, sys, os, requests, cpuinfo, pypresence, groestlcoin_hash, skein
-from eth_account.messages import encode_defunct
+import time, json, sha3, os, requests, rich, cpuinfo, pypresence, eth_account.messages, groestlcoin_hash, skein
 from web3.auto import w3
-from rich import print
 
 
-MainNET = "https://testnet.siro.pichisdns.com:5006"
-JunaidNET = 'https://node-2.siricoin.tech:5006'
+MainNET = "http://127.0.0.1:5005"
 
 configFile = "config.json"
 TimeOUT = 1
 RpcEnabled = True
 hashes_per_list = 3000
-hashrate_refreshRate = 10 # s
+hashrate_refreshRate = 15 # s
 
 
 def hash():
     pass
 
 def rgbPrint(string, color, end="\n"):
-    print("[" + color + "]" + str(string) + "[/" + color + "]", end=end)
+    rich.print("[" + color + "]" + str(string) + "[/" + color + "]", end=end)
 
 def Get_address():
     global address_valid, minerAddr
@@ -48,7 +45,7 @@ class SignatureManager(object):
         self.signed = 0
     
     def signTransaction(self, private_key, transaction):
-        message = encode_defunct(text=transaction["data"])
+        message = eth_account.messages.encode_defunct(text=transaction["data"])
         transaction["hash"] = w3.soliditySha3(["string"], [transaction["data"]]).hex()
         _signature = w3.eth.account.sign_message(message, private_key=private_key).signature.hex()
         signer = w3.eth.account.recover_message(message, signature=_signature)
@@ -72,7 +69,7 @@ class SiriCoinMiner(object):
         self.acct = w3.eth.account.from_key(self.priv_key)
         self.messages = b"null"
         
-        self.timestamp = time.time()
+        self.timestamp = time.perf_counter()
         _txs = requests.get(f"{self.node}/accounts/accountInfo/{self.acct.address}").json().get("result").get("transactions")
         self.lastSentTx = _txs[len(_txs)-1]
         self.refresh()
@@ -84,7 +81,7 @@ class SiriCoinMiner(object):
         self.lastBlock = info["lastBlockHash"]
         _txs = requests.get(f"{self.node}/accounts/accountInfo/{self.acct.address}").json().get("result").get("transactions")
         self.lastSentTx = _txs[len(_txs)-1]
-        self.timestamp = time.time()
+        self.timestamp = time.perf_counter()
         self.nonce = 0
     
     def submitBlock(self, blockData):
@@ -144,7 +141,7 @@ class SiriCoinMiner(object):
             bRoot_hasher.update(bytes.fromhex(bRoot.replace("0x", "")))
 
             first_run = False
-            while (time.time() - self.timestamp) < hashrate_refreshRate:
+            while (time.perf_counter() - self.timestamp) < hashrate_refreshRate:
                 for i in range (hashes_per_list):
                     
                     finalHash = bRoot_hasher.copy()
@@ -161,39 +158,18 @@ class SiriCoinMiner(object):
 
                 hashes.clear()
             
-            rgbPrint("Last " + str(hashrate_refreshRate) + "s hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)), "yellow")
+            rgbPrint("Last " + str(hashrate_refreshRate) + "s hashrate: " + self.formatHashrate((self.nonce / (time.perf_counter() - self.timestamp))), "yellow")
             if RpcEnabled:
-                rpc.update(state="Mining siro on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", large_image="sirious", start=time.time())
+                rpc.update(state="Mining siro on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", large_image="sirious")
 
 
 if __name__ == "__main__":
     first_run = True
     address_valid = False
     
-    
-    # rgbPrint("-"*28 + " System " + "-"*28, "yellow")
-    # rgbPrint("OS: " + platform.system() + " " + platform.release(), "yellow")
-    # rgbPrint("CPU: " + cpuinfo.get_cpu_info()['brand_raw'] +" @ "+ cpuinfo.get_cpu_info()['hz_advertised_friendly'] + " (x"+str(cpuinfo.get_cpu_info()['count'])+")", "yellow")
-    # rgbPrint("RAM: " + str(round(int(psutil.virtual_memory()[3]) / 1074000000, 2)) + " / " + str(round(float(psutil.virtual_memory()[0]) / 1074000000, 2)) + " GB", "yellow")
-    # rgbPrint("-"*64, "yellow") # code by luketherock868
-    
     Get_address()
         
-    # try:
-        # if requests.get(f"{MainNET}/chain/block/0", timeout=TimeOUT).json()["result"]["height"] == 0:
     the_node = "test-net"
     miner = SiriCoinMiner(MainNET, minerAddr)
-    Continue_To_Junaid_net = False
     miner.startMining()
-    # except requests.ConnectTimeout:
-    #     Continue_To_Junaid_net = True
-
-    # try:
-    #     if Continue_To_Junaid_net and requests.get(f"{JunaidNET}/chain/block/1", timeout=TimeOUT).json()["result"]["height"] == 1:
-    #         the_node = "Junaid-net"
-    #         miner = SiriCoinMiner(JunaidNET, minerAddr)
-    #         miner.startMining()
-    # except requests.ConnectTimeout:
-    #     rgbPrint("All networks are down, quitting the miner, goodbye!", "red")
-    #     sys.exit()
         
