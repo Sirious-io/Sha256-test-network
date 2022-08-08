@@ -1,21 +1,23 @@
-import time, json, sha3, os, requests, rich, cpuinfo, pypresence, eth_account.messages, groestlcoin_hash, skein
+import time, json, sha3, sys, os, requests, cpuinfo, pypresence, groestlcoin_hash, skein
+from eth_account.messages import encode_defunct
 from web3.auto import w3
+from rich import print
 
 
-MainNET = "http://127.0.0.1:5005"
+MainNET = "https://testnet.siro.pichisdns.com:5006"
 
 configFile = "config.json"
 TimeOUT = 1
 RpcEnabled = True
 hashes_per_list = 3000
-hashrate_refreshRate = 15 # s
+hashrate_refreshRate = 30 # s
 
 
 def hash():
     pass
 
 def rgbPrint(string, color, end="\n"):
-    rich.print("[" + color + "]" + str(string) + "[/" + color + "]", end=end)
+    print("[" + color + "]" + str(string) + "[/" + color + "]", end=end)
 
 def Get_address():
     global address_valid, minerAddr
@@ -27,7 +29,7 @@ def Get_address():
         minerAddr = data["address"]
 
     while not address_valid:
-            minerAddr = input("Enter your SiriCoin address: ")
+            minerAddr = input("Enter your Sirious address: ")
             try:
                 address_valid = w3.isAddress(minerAddr)
             except:
@@ -45,7 +47,7 @@ class SignatureManager(object):
         self.signed = 0
     
     def signTransaction(self, private_key, transaction):
-        message = eth_account.messages.encode_defunct(text=transaction["data"])
+        message = encode_defunct(text=transaction["data"])
         transaction["hash"] = w3.soliditySha3(["string"], [transaction["data"]]).hex()
         _signature = w3.eth.account.sign_message(message, private_key=private_key).signature.hex()
         signer = w3.eth.account.recover_message(message, signature=_signature)
@@ -63,13 +65,13 @@ class SiriCoinMiner(object):
         self.target = "0x" + "f"*64
         self.lastBlock = ""
         self.rewardsRecipient = w3.toChecksumAddress(RewardsRecipient)
-        self.priv_key = w3.solidityKeccak(["string", "address"], ["SiriCoin Will go to M00N - Just a disposable key", self.rewardsRecipient])
+        self.priv_key = w3.solidityKeccak(["string", "address"], ["Sirious is wayyy better than Siricoin, change my mind :) - Just a disposable key", self.rewardsRecipient])
 
         self.nonce = 0
         self.acct = w3.eth.account.from_key(self.priv_key)
         self.messages = b"null"
         
-        self.timestamp = time.perf_counter()
+        self.timestamp = time.time()
         _txs = requests.get(f"{self.node}/accounts/accountInfo/{self.acct.address}").json().get("result").get("transactions")
         self.lastSentTx = _txs[len(_txs)-1]
         self.refresh()
@@ -81,7 +83,7 @@ class SiriCoinMiner(object):
         self.lastBlock = info["lastBlockHash"]
         _txs = requests.get(f"{self.node}/accounts/accountInfo/{self.acct.address}").json().get("result").get("transactions")
         self.lastSentTx = _txs[len(_txs)-1]
-        self.timestamp = time.perf_counter()
+        self.timestamp = time.time()
         self.nonce = 0
     
     def submitBlock(self, blockData):
@@ -141,7 +143,8 @@ class SiriCoinMiner(object):
             bRoot_hasher.update(bytes.fromhex(bRoot.replace("0x", "")))
 
             first_run = False
-            while (time.perf_counter() - self.timestamp) < hashrate_refreshRate:
+            timestamp = time.perf_counter()
+            while (time.perf_counter() - timestamp) < hashrate_refreshRate:
                 for i in range (hashes_per_list):
                     
                     finalHash = bRoot_hasher.copy()
@@ -158,9 +161,12 @@ class SiriCoinMiner(object):
 
                 hashes.clear()
             
-            rgbPrint("Last " + str(hashrate_refreshRate) + "s hashrate: " + self.formatHashrate((self.nonce / (time.perf_counter() - self.timestamp))), "yellow")
+            rgbPrint("Last " + str(hashrate_refreshRate) + "s hashrate: " + self.formatHashrate((self.nonce / (time.perf_counter() - timestamp))), "yellow")
             if RpcEnabled:
-                rpc.update(state="Mining siro on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / hashrate_refreshRate)) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", large_image="sirious")
+                try:
+                    rpc.update(state="Mining siro on " + cpuinfo.get_cpu_info()['brand_raw'] + "!", details="Hashrate: " + self.formatHashrate((self.nonce / (time.perf_counter() - timestamp))) + ", Network balance: " + str(requests.get(f"{self.node}/accounts/accountBalance/{self.rewardsRecipient}").json()["result"]["balance"]) + " Siro", large_image="sirious")
+                except:
+                    RpcEnabled = False
 
 
 if __name__ == "__main__":
@@ -168,8 +174,8 @@ if __name__ == "__main__":
     address_valid = False
     
     Get_address()
-        
     the_node = "test-net"
     miner = SiriCoinMiner(MainNET, minerAddr)
+    Continue_To_Junaid_net = False
     miner.startMining()
         
