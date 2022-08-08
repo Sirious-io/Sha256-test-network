@@ -1,7 +1,7 @@
 eth_account==0.5.8
 eth_utils==1.10.0
-Flask==2.1.2
-Flask_Cors==3.0.10
+uvicorn==0.18.2
+fastapi==0.79.0
 groestlcoin_hash==1.0.3
 py_cpuinfo==8.0.0
 pypresence==4.2.1
