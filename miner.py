@@ -1,4 +1,4 @@
-import time, json, sha3, sys, os, requests, cpuinfo, pypresence, groestlcoin_hash, skein
+import time, json, sha3, os, requests, cpuinfo, pypresence, groestlcoin_hash, skein
 from eth_account.messages import encode_defunct
 from web3.auto import w3
 from rich import print
