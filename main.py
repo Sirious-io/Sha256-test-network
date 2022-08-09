@@ -15,7 +15,7 @@ nodePort = 5005
 
 transactions = {}
 
-config = {"dataBaseFile": "database.json", "peers": ["https://testnet.siro.network"], "InitTxID": "none"}
+config = {"dataBaseFile": "database.json", "peers": ["https://testnet.siro.network/"], "InitTxID": "none"}
 
 
 def rgbPrint(string, color, end="\n"):
