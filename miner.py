@@ -4,7 +4,7 @@ from web3.auto import w3
 from rich import print
 
 
-MainNET = "https://testnet.siro.pichisdns.com:5006"
+MainNET = "https://testnet.siro.network"
 
 configFile = "config.json"
 TimeOUT = 1
