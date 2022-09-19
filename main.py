@@ -133,7 +133,7 @@ class Transaction(object):
 
 class GenesisBeacon(object):
     def __init__(self):
-        self.timestamp = int(time.time())
+        self.timestamp = 1641738403
         self.miner = "0x" + "0"*40
         self.parent = "Initializing the chain".encode()
         self.difficulty = 1
